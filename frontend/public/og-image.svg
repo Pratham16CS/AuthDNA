@@ -1,0 +1,110 @@
+<svg viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Primary gradient -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0ea5e9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Accent gradient -->
+    <linearGradient id="accentGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0c4a6e;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Blur for background elements -->
+    <filter id="blur">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+  
+  <!-- Main background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative background circles -->
+  <circle cx="150" cy="100" r="120" fill="url(#primaryGrad)" opacity="0.08" filter="url(#blur)"/>
+  <circle cx="1050" cy="450" r="150" fill="url(#accentGrad)" opacity="0.08" filter="url(#blur)"/>
+  <circle cx="600" cy="600" r="100" fill="url(#primaryGrad)" opacity="0.05" filter="url(#blur)"/>
+  
+  <!-- Left decorative DNA -->
+  <g opacity="0.12" transform="translate(80, 200)">
+    <path d="M 0 0 Q -15 30, 0 60 Q 15 80, 0 110 Q -15 140, 0 170" 
+          stroke="url(#primaryGrad)" stroke-width="16" fill="none" stroke-linecap="round"/>
+    <path d="M 60 0 Q 75 30, 60 60 Q 45 80, 60 110 Q 75 140, 60 170" 
+          stroke="url(#accentGrad)" stroke-width="16" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Right decorative DNA -->
+  <g opacity="0.1" transform="translate(1050, 150)">
+    <path d="M 0 0 Q -15 40, 0 80 Q 15 110, 0 150 Q -15 180, 0 230" 
+          stroke="url(#accentGrad)" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M 50 0 Q 65 40, 50 80 Q 35 110, 50 150 Q 65 180, 50 230" 
+          stroke="url(#primaryGrad)" stroke-width="14" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Main content container -->
+  <g transform="translate(600, 315)">
+    <!-- Central logo -->
+    <g transform="translate(-150, -80) scale(1.8)" filter="url(#glow)">
+      <!-- Left strand -->
+      <path d="M 55 30 Q 40 50, 55 75 Q 70 95, 55 120 Q 40 145, 55 170" 
+            stroke="url(#primaryGrad)" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      
+      <!-- Right strand -->
+      <path d="M 145 30 Q 160 50, 145 75 Q 130 95, 145 120 Q 160 145, 145 170" 
+            stroke="url(#accentGrad)" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      
+      <!-- Connection nodes -->
+      <g opacity="0.9">
+        <circle cx="55" cy="50" r="5" fill="url(#primaryGrad)"/>
+        <circle cx="145" cy="50" r="5" fill="url(#accentGrad)"/>
+        <line x1="55" y1="50" x2="145" y2="50" stroke="url(#primaryGrad)" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      </g>
+      
+      <g opacity="0.85">
+        <circle cx="55" cy="95" r="6" fill="url(#primaryGrad)"/>
+        <circle cx="145" cy="95" r="6" fill="url(#accentGrad)"/>
+        <line x1="55" y1="95" x2="145" y2="95" stroke="url(#accentGrad)" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      </g>
+      
+      <g opacity="0.8">
+        <circle cx="55" cy="140" r="5" fill="url(#primaryGrad)"/>
+        <circle cx="145" cy="140" r="5" fill="url(#accentGrad)"/>
+        <line x1="55" y1="140" x2="145" y2="140" stroke="url(#primaryGrad)" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      </g>
+    </g>
+    
+    <!-- Title text -->
+    <text x="120" y="90" font-size="120" font-weight="900" fill="url(#primaryGrad)" font-family="'Segoe UI', Arial, sans-serif" text-anchor="middle" letter-spacing="2">
+      AuthDNA
+    </text>
+    
+    <!-- Subtitle text -->
+    <text x="120" y="160" font-size="54" font-weight="300" fill="#cbd5e1" font-family="'Segoe UI', Arial, sans-serif" text-anchor="middle" opacity="0.95">
+      AI Login Risk Assessment
+    </text>
+    
+    <!-- Accent line -->
+    <line x1="-250" y1="185" x2="490" y2="185" stroke="url(#primaryGrad)" stroke-width="2" opacity="0.4"/>
+  </g>
+  
+  <!-- Bottom accent bar -->
+  <rect x="0" y="600" width="1200" height="30" fill="url(#accentGrad)" opacity="0.15"/>
+</svg>
