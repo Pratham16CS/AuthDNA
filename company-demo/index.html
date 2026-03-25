@@ -217,12 +217,12 @@
           </button>
         </form>
 
-        <!-- Result -->
         <div id="result" class="result">
           <div class="result-header" style="justify-content: center;">
             <span class="decision-badge" id="decisionBadge" style="font-size: 1.2rem; padding: 8px 20px">—</span>
           </div>
           <div style="text-align: center; margin-top: 10px; color: var(--muted); font-size: 0.9rem;" id="loginStatus">—</div>
+          <div style="text-align: center; margin-top: 8px; color: var(--muted); font-size: 0.8rem;" id="loginLocation"></div>
         </div>
       </div>
 
@@ -348,7 +348,7 @@
     }
 
     function showResult(username, data) {
-      const { decision, success } = data;
+      const { decision, success, city, country, ip } = data;
       const colors = DECISION_COLORS[decision] || {};
 
       resultEl.style.background = colors.bg || 'rgba(255,255,255,.04)';
@@ -359,6 +359,15 @@
       badge.className = 'decision-badge dec-' + decision;
 
       document.getElementById('loginStatus').textContent = success ? '✅ Logged In Successfully' : '🚫 Authentication Blocked';
+      
+      const locEl = document.getElementById('loginLocation');
+      if (ip && ip !== 'Unknown' && ip !== '127.0.0.1') {
+         locEl.textContent = `from ${city || 'Unknown City'}, ${country || 'Unknown Country'} (IP: ${ip})`;
+         locEl.style.display = 'block';
+      } else {
+         locEl.textContent = 'from Local Network (127.0.0.1)';
+         locEl.style.display = 'block';
+      }
 
       resultEl.classList.add('visible');
     }

@@ -68,6 +68,9 @@ class EvaluateResponse(BaseModel):
     processing_time_ms: float
     request_id: str
     timestamp: str
+    ip: str
+    country: str
+    city: str
 
 
 class WebhookUpdateRequest(BaseModel):

@@ -23,6 +23,9 @@ export interface EvaluateResponse {
   score: number;
   explanation: string;
   risk_factors: RiskFactor[];
+  ip: string;
+  country: string;
+  city: string;
   dna_match: number;
   is_new_user: boolean;
   processing_time_ms: number;

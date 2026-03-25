@@ -57,7 +57,8 @@ async def evaluate_login(body: EvaluateRequest, request: Request, tenant: dict =
     now = _ts()
     resp = EvaluateResponse(decision=risk["decision"], score=risk["score"], explanation=explanation,
         risk_factors=[{"factor":f["factor"],"contribution":f["contribution"],"description":f["description"]} for f in risk["risk_factors"]],
-        dna_match=dna_result["dna_match"], is_new_user=dna_result["is_new_user"], processing_time_ms=pms, request_id=rid, timestamp=now)
+        dna_match=dna_result["dna_match"], is_new_user=dna_result["is_new_user"], processing_time_ms=pms, request_id=rid, timestamp=now,
+        ip=ip, country=pipe["geo"]["country"], city=pipe["geo"]["city"])
     asyncio.create_task(_se(tid, body, ip, dfp, pipe, risk, explanation, dna_result, pms, rid, now, tenant))
     return resp
 

@@ -54,6 +54,9 @@ app.post('/api/login', async (req, res) => {
       success: loginAllowed,
       decision: result.decision,
       request_id: result.request_id,
+      ip: result.ip,
+      country: result.country,
+      city: result.city
     });
   } catch (err) {
     console.error('AuthDNA evaluate error:', err);

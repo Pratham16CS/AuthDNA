@@ -156,6 +156,14 @@ export default function PlaygroundPage() {
                     <span className="text-muted-foreground">ID:</span>
                     <span className="font-mono text-xs ml-1">{response.request_id}</span>
                   </div>
+                  <div className="bg-muted rounded p-2">
+                    <span className="text-muted-foreground">IP:</span>
+                    <span className="font-mono text-xs ml-1">{response.ip}</span>
+                  </div>
+                  <div className="bg-muted rounded p-2">
+                    <span className="text-muted-foreground">Location:</span>
+                    <span className="font-bold ml-1">{response.city}, {response.country}</span>
+                  </div>
                 </div>
 
                 {/* Risk Factors */}
