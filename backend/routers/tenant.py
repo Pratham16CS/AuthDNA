@@ -1,114 +1,73 @@
-# backend/routers/tenant.py
-"""
-Tenant management router — registration, info, key rotation.
-"""
-from fastapi import APIRouter, HTTPException, Depends, Request
-from models.schemas import (
-    TenantRegisterRequest, TenantRegisterResponse,
-    TenantInfo, APIKeyRotateResponse
-)
-from services.api_key_service import APIKeyService
-from services.tenant_service import TenantService
+import hashlib
+import secrets
+import logging
+from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, Depends
 from middleware.api_key_auth import verify_api_key
+from models.schemas import TenantRegisterRequest, TenantRegisterResponse, WebhookUpdateRequest
+from services.database_service import db_service
 from config.settings import settings
 
-router = APIRouter(prefix="/v1/tenants", tags=["Tenant Management"])
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/v1/tenants", tags=["tenants"])
+
+
+def _ts():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @router.post("/register", response_model=TenantRegisterResponse)
-async def register_tenant(req: TenantRegisterRequest):
-    """
-    Register a new company/tenant and receive an API key.
-    
-    ⚠️ The API key is shown ONLY ONCE. Save it securely.
-    """
-    # Verify admin secret
-    if req.admin_secret != settings.ADMIN_SECRET:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid admin secret. Contact the platform administrator."
-        )
-
+async def register(body: TenantRegisterRequest):
+    if body.admin_secret != settings.admin_secret:
+        raise HTTPException(403, "Invalid admin secret")
+    slug = "".join(c if c.isalnum() else "_" for c in body.company_name.lower())[:20]
+    tenant_id = f"{slug}_{secrets.token_hex(4)}"
+    raw_key = f"sk_live_{secrets.token_hex(24)}"
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    now = _ts()
+    logger.info(f"📝 Registering tenant: {tenant_id} | raw_key={raw_key[:20]}... | key_hash={key_hash[:16]}...")
     try:
-        # Create tenant and API key
-        tenant_id, raw_api_key = await APIKeyService.create_key(
-            company_name=req.company_name,
-            email=req.email,
-            tier=req.tier.value,
-            webhook_url=req.webhook_url
-        )
-
-        # Get rate limit for tier
-        from config.settings import TenantTier
-        rate_limit = settings.RATE_LIMITS.get(TenantTier(req.tier.value), 100)
-
-        return TenantRegisterResponse(
-            tenant_id=tenant_id,
-            company_name=req.company_name,
-            api_key=raw_api_key,
-            tier=req.tier,
-            rate_limit=rate_limit,
-            message="🔑 Save your API key now — it won't be shown again! "
-                    "Use it in the X-API-Key header for all API calls."
-        )
-
+        await db_service.create_tenant(tenant_id, {
+            "company_name": body.company_name, "email": body.email,
+            "tier": body.tier.value, "total_api_calls": 0,
+            "webhook_url": body.webhook_url or "", "is_active": True, "created_at": now,
+        })
+        logger.info(f"✅ Tenant created: {tenant_id}")
+        await db_service.save_api_key(key_hash, {
+            "tenant_id": tenant_id, "tier": body.tier.value, "status": "active",
+            "key_prefix": raw_key[:16], "created_at": now, "last_used": "",
+        })
+        logger.info(f"✅ API key saved with hash: {key_hash[:16]}...")
+        return TenantRegisterResponse(tenant_id=tenant_id, api_key=raw_key,
+            company_name=body.company_name, tier=body.tier.value,
+            message="Save your API key — it won't be shown again!")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+        logger.error(f"❌ Registration failed: {e}", exc_info=True)
+        raise HTTPException(500, f"Registration failed: {e}")
 
 
-@router.get("/me", response_model=TenantInfo)
-async def get_my_tenant(
-    tenant: dict = Depends(verify_api_key)
-):
-    """Get your tenant info (requires API key)"""
-    tenant_data = await TenantService.get_tenant(tenant["tenant_id"])
-
-    if not tenant_data:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-
-    return TenantInfo(
-        tenant_id=tenant_data["tenant_id"],
-        company_name=tenant_data["company_name"],
-        email=tenant_data["email"],
-        tier=tenant_data.get("tier", "free"),
-        created_at=tenant_data.get("created_at", ""),
-        is_active=tenant_data.get("is_active", True),
-        webhook_url=tenant_data.get("webhook_url"),
-        total_api_calls=tenant_data.get("total_api_calls", 0)
-    )
+@router.get("/me")
+async def get_me(tenant: dict = Depends(verify_api_key)):
+    t = await db_service.get_tenant(tenant["tenant_id"])
+    if not t: raise HTTPException(404, "Not found")
+    return {"tenant_id": tenant["tenant_id"], "company_name": t.get("company_name", ""),
+            "email": t.get("email", ""), "tier": t.get("tier", "free"),
+            "total_api_calls": t.get("total_api_calls", 0),
+            "webhook_url": t.get("webhook_url") or None, "is_active": t.get("is_active", True),
+            "created_at": t.get("created_at"), "key_prefix": tenant.get("key_prefix", "")}
 
 
-@router.post("/rotate-key", response_model=APIKeyRotateResponse)
-async def rotate_api_key(
-    tenant: dict = Depends(verify_api_key)
-):
-    """
-    Rotate your API key. The old key is revoked immediately.
-    
-    ⚠️ The new key is shown ONLY ONCE.
-    """
-    try:
-        new_key = await APIKeyService.rotate_key(tenant["tenant_id"])
-        return APIKeyRotateResponse(
-            new_api_key=new_key,
-            message="🔑 Old key revoked. Save your new API key — "
-                    "it won't be shown again!"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Key rotation failed: {str(e)}"
-        )
+@router.post("/rotate-key")
+async def rotate_key(tenant: dict = Depends(verify_api_key)):
+    await db_service.revoke_tenant_keys(tenant["tenant_id"])
+    raw = f"sk_live_{secrets.token_hex(24)}"
+    kh = hashlib.sha256(raw.encode()).hexdigest()
+    await db_service.save_api_key(kh, {"tenant_id": tenant["tenant_id"], "tier": tenant["tier"],
+        "status": "active", "key_prefix": raw[:16], "created_at": _ts(), "last_used": ""})
+    return {"api_key": raw, "message": "Old key revoked. Save new key!"}
 
 
 @router.put("/webhook")
-async def update_webhook(
-    webhook_url: str,
-    tenant: dict = Depends(verify_api_key)
-):
-    """Update webhook URL for risk event notifications"""
-    await TenantService.update_tenant(
-        tenant["tenant_id"],
-        {"webhook_url": webhook_url}
-    )
-    return {"message": f"Webhook URL updated to {webhook_url}"}
+async def update_webhook(body: WebhookUpdateRequest, tenant: dict = Depends(verify_api_key)):
+    await db_service.update_tenant(tenant["tenant_id"], {"webhook_url": body.url})
+    return {"webhook_url": body.url, "status": "active"}

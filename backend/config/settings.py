@@ -1,58 +1,26 @@
-# backend/config/settings.py
-import os
-from dotenv import load_dotenv
-from enum import Enum
-
-load_dotenv()
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
 
-class TenantTier(str, Enum):
-    FREE = "free"
-    PRO = "pro"
-    ENTERPRISE = "enterprise"
-
-
-class Settings:
-    # Firebase
-    FIREBASE_SERVICE_ACCOUNT_PATH: str = os.getenv(
-        "FIREBASE_SERVICE_ACCOUNT_PATH", "config/firebase_service_account.json"
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
-    FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "")
 
-    # Mistral AI
-    MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
-
-    # API
-    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "change-me-in-production")
-    API_KEY_PREFIX: str = os.getenv("API_KEY_PREFIX", "sk_live_")
-    ADMIN_SECRET: str = os.getenv("ADMIN_SECRET", "admin-secret-change-me")
-
-    # Rate limits per tier (requests per hour)
-    RATE_LIMITS: dict = {
-        TenantTier.FREE: int(os.getenv("RATE_LIMIT_FREE", 100)),
-        TenantTier.PRO: int(os.getenv("RATE_LIMIT_PRO", 1000)),
-        TenantTier.ENTERPRISE: int(os.getenv("RATE_LIMIT_ENTERPRISE", 10000)),
-    }
-
-    # Webhook
-    WEBHOOK_TIMEOUT: int = int(os.getenv("WEBHOOK_TIMEOUT", 5))
-    WEBHOOK_RETRY_COUNT: int = int(os.getenv("WEBHOOK_RETRY_COUNT", 3))
-
-    # IP Lookup
-    IP_API_URL: str = os.getenv("IP_API_URL", "http://ip-api.com/json/")
-
-    # Model paths
-    MODEL_DIR: str = "data/models"
-    ISO_FOREST_PATH: str = f"{MODEL_DIR}/iso_forest.pkl"
-    XGB_MODEL_PATH: str = f"{MODEL_DIR}/xgb_model.pkl"
-    RF_MODEL_PATH: str = f"{MODEL_DIR}/rf_model.pkl"
-    SCALER_PATH: str = f"{MODEL_DIR}/scaler.pkl"
-
-    # Decision thresholds
-    ALLOW_THRESHOLD: float = 30.0
-    OTP_THRESHOLD: float = 60.0
-    STEPUP_THRESHOLD: float = 80.0
-    # Above STEPUP_THRESHOLD = BLOCK
+    appwrite_endpoint: str = "https://cloud.appwrite.io/v1"
+    appwrite_project_id: str = ""
+    appwrite_api_key: str = ""
+    appwrite_database_id: str = "authdna_db"
+    admin_secret: str = "change-me"
+    webhook_signing_secret: str = "whsec_change_me"
+    mistral_api_key: Optional[str] = None
+    environment: str = "development"
+    allowed_origins: str = "http://localhost:5173,http://localhost:8080"
+    free_rate_limit: int = 100
+    pro_rate_limit: int = 1000
+    enterprise_rate_limit: int = 10000
 
 
 settings = Settings()

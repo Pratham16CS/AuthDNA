@@ -56,7 +56,7 @@ def make_history(n=50):
             "resource":          random.choice(["reports","dashboard","reports"]),
             "session_mins":      40 + random.randint(-10, 10),
             "daily_login_count": 1,
-            "timestamp":         (base + timedelta(days=i)).isoformat(),
+            "timestamp":         (base + timedelta(days=i))now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         })
     return history
 

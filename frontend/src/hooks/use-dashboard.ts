@@ -1,97 +1,72 @@
-// src/hooks/use-dashboard.ts
-import { useState, useEffect, useCallback } from "react";
-import dashboardAPI, { type DashboardStats, type LoginLog, type UserDNA } from "@/api/dashboard";
+import { useState, useEffect } from "react";
+import dashboardAPI, { type DashboardStats, type LoginLog, type UserProfile } from "@/api/dashboard";
 
-export function useDashboard(period?: string) {
+export function useDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async () => {
-    setIsLoading(true);
+  const fetchStats = async () => {
+    setLoading(true);
     setError(null);
     try {
-      const data = await dashboardAPI.getStats(period);
-      setStats(data);
+      const res = await dashboardAPI.getStats();
+      setStats(res.data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to load stats");
+      setError(err.response?.data?.detail || err.message || "Failed to load dashboard");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [period]);
+  };
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { fetchStats(); }, []);
 
-  return { stats, isLoading, error, refetch: fetchStats };
+  return { stats, loading, error, refresh: fetchStats };
 }
 
-export function useLogs(options?: { limit?: number; userId?: string }) {
+export function useLogs(userId?: string, limit: number = 50) {
   const [logs, setLogs] = useState<LoginLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLogs = useCallback(async () => {
-    setIsLoading(true);
+  const fetchLogs = async () => {
+    setLoading(true);
     setError(null);
     try {
-      const data = await dashboardAPI.getLogs(options);
-      setLogs(data);
+      const params: any = { limit };
+      if (userId) params.user_id = userId;
+      const res = await dashboardAPI.getLogs(params);
+      setLogs(res.data.logs || []);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to load logs");
+      setError(err.response?.data?.detail || err.message || "Failed to load logs");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [options?.limit, options?.userId]);
+  };
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  useEffect(() => { fetchLogs(); }, [userId, limit]);
 
-  return { logs, isLoading, error, refetch: fetchLogs };
+  return { logs, loading, error, refresh: fetchLogs };
 }
 
 export function useUsers() {
-  const [users, setUsers] = useState<UserDNA[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
+  const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const data = await dashboardAPI.getAllUsers();
-      setUsers(data);
+      const res = await dashboardAPI.getUsers();
+      setUsers(res.data.users || []);
     } catch (err: any) {
-      setError("Failed to load users");
+      setError(err.response?.data?.detail || err.message || "Failed to load users");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => { fetchUsers(); }, []);
 
-  return { users, isLoading, error, refetch: fetchUsers };
-}
-
-export function useUserDNA(userId: string | undefined) {
-  const [dna, setDna] = useState<UserDNA | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchDNA = useCallback(async () => {
-    if (!userId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await dashboardAPI.getUserDNA(userId);
-      setDna(data);
-    } catch (err: any) {
-      setError(err.response?.status === 404
-        ? "No DNA profile yet. Created after first login evaluation."
-        : "Failed to load DNA profile");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => { fetchDNA(); }, [fetchDNA]);
-
-  return { dna, isLoading, error, refetch: fetchDNA };
+  return { users, loading, error, refresh: fetchUsers };
 }

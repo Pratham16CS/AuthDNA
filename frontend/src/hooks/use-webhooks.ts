@@ -1,48 +1,55 @@
-// src/hooks/use-webhooks.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import webhookAPI, { type WebhookConfig } from "@/api/webhooks";
-import { toast } from "sonner";
 
 export function useWebhooks() {
-  const [webhook, setWebhook] = useState<WebhookConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [config, setConfig] = useState<WebhookConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchWebhook = useCallback(async () => {
-    setIsLoading(true);
+  const fetchWebhook = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const data = await webhookAPI.getWebhook();
-      setWebhook(data);
-    } catch {
-      // Silently fail — webhook might not be configured
+      const res = await webhookAPI.getWebhook();
+      setConfig(res.data);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || "Failed to load webhook");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, []);
+  };
 
-  const updateWebhook = useCallback(async (url: string) => {
-    const data = await webhookAPI.updateWebhook(url);
-    toast.success("Webhook URL updated");
-    await fetchWebhook();
-    return data;
-  }, [fetchWebhook]);
-
-  const deleteWebhook = useCallback(async () => {
-    await webhookAPI.deleteWebhook();
-    toast.success("Webhook removed");
-    await fetchWebhook();
-  }, [fetchWebhook]);
-
-  const testWebhook = useCallback(async () => {
-    const data = await webhookAPI.testWebhook();
-    if (data.success) {
-      toast.success("Test webhook sent!");
-    } else {
-      toast.error("Webhook test failed");
+  const update = async (url: string) => {
+    try {
+      await webhookAPI.updateWebhook(url);
+      await fetchWebhook();
+      return true;
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || "Failed to update");
+      return false;
     }
-    return data;
-  }, []);
+  };
 
-  useEffect(() => { fetchWebhook(); }, [fetchWebhook]);
+  const remove = async () => {
+    try {
+      await webhookAPI.deleteWebhook();
+      await fetchWebhook();
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-  return { webhook, isLoading, updateWebhook, deleteWebhook, testWebhook, refetch: fetchWebhook };
+  const test = async () => {
+    try {
+      const res = await webhookAPI.testWebhook();
+      return res.data.delivered;
+    } catch {
+      return false;
+    }
+  };
+
+  useEffect(() => { fetchWebhook(); }, []);
+
+  return { config, loading, error, update, remove, test, refresh: fetchWebhook };
 }

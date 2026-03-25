@@ -1,13 +1,10 @@
-// src/api/index.ts
-export { default as apiClient } from "./client";
-export { default as authAPI } from "./auth";
-export { default as evaluateAPI } from "./evaluate";
-export { default as dashboardAPI } from "./dashboard";
-export { default as usageAPI } from "./usage";
-export { default as webhookAPI } from "./webhooks";
-
-export type { TenantInfo, RegisterPayload, RegisterResponse } from "./auth";
-export type { EvaluatePayload, EvaluateResponse, RiskFactor, Preset } from "./evaluate";
-export type { DashboardStats, LoginLog, UserDNA } from "./dashboard";
-export type { CurrentUsage, UsageHistory } from "./usage";
-export type { WebhookConfig } from "./webhooks";
+export { default as apiClient } from './client';
+export { registerTenant, getMe, rotateKey } from './auth';
+export { default as dashboardAPI, getStats, getLogs, getUsers, getUserDna } from './dashboard';
+export type { DashboardStats, LoginLog, UserProfile, UserDNA } from './dashboard';
+export { default as evaluateAPI, evaluate } from './evaluate';
+export type { EvaluateRequest, EvaluateResponse, RiskFactor } from './evaluate';
+export { default as usageAPI, getCurrentUsage, getUsageHistory } from './usage';
+export type { CurrentUsage, UsageHistory } from './usage';
+export { default as webhookAPI, getWebhook, updateWebhook, deleteWebhook, testWebhook } from './webhooks';
+export type { WebhookConfig } from './webhooks';

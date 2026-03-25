@@ -1,116 +1,43 @@
-# backend/engines/llm_explainer.py
-"""
-LLM Explainer — uses Mistral AI (free) to generate 
-human-readable risk explanations.
-"""
-import httpx
-from typing import Dict, List
+import logging
+import asyncio
 from config.settings import settings
-from models.schemas import RiskFactor
+
+logger = logging.getLogger(__name__)
 
 
 class LLMExplainer:
-    """Generate natural language explanations using Mistral AI"""
+    def __init__(self):
+        self._client = None
 
-    MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
+    def _get_client(self):
+        if self._client is None and settings.mistral_api_key:
+            try:
+                from mistralai import Mistral
+                self._client = Mistral(api_key=settings.mistral_api_key)
+            except Exception:
+                pass
+        return self._client
 
-    @staticmethod
-    async def explain(
-        score: float,
-        decision: str,
-        risk_factors: List[RiskFactor],
-        metadata: Dict,
-        dna_match: float
-    ) -> str:
-        """
-        Generate a concise human-readable explanation of the risk assessment.
-        Falls back to template if Mistral is unavailable.
-        """
-        # Build context for LLM
-        factors_text = "\n".join([
-            f"- {f.factor}: {f.description} (contribution: {f.contribution:+.1f})"
-            for f in risk_factors
-        ])
-
-        prompt = f"""You are a cybersecurity risk analyst. Explain this login risk assessment in ONE concise sentence (max 30 words).
-
-Risk Score: {score}/100
-Decision: {decision}
-DNA Match: {dna_match}%
-Country: {metadata.get('country', 'Unknown')}
-City: {metadata.get('city', 'Unknown')}
-Hour: {metadata.get('hour', 'Unknown')}:00
-New User: {metadata.get('is_new_user', False)}
-
-Risk Factors:
-{factors_text}
-
-Write a clear, non-technical explanation. Example: "Normal login from known device at usual time from India" or "Suspicious: new device from unusual country with failed attempts"."""
-
-        try:
-            if not settings.MISTRAL_API_KEY:
-                return LLMExplainer._template_explain(
-                    score, decision, risk_factors, metadata, dna_match
-                )
-
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.post(
-                    LLMExplainer.MISTRAL_API_URL,
-                    headers={
-                        "Authorization": f"Bearer {settings.MISTRAL_API_KEY}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "mistral-tiny",
-                        "messages": [
-                            {"role": "user", "content": prompt}
-                        ],
-                        "max_tokens": 60,
-                        "temperature": 0.3
-                    }
-                )
-
-                if response.status_code == 200:
-                    data = response.json()
-                    explanation = data["choices"][0]["message"]["content"].strip()
-                    # Clean up — remove quotes if present
-                    explanation = explanation.strip('"\'')
-                    return explanation
-
-        except Exception as e:
-            print(f"Mistral API error: {e}")
-
-        # Fallback to template
-        return LLMExplainer._template_explain(
-            score, decision, risk_factors, metadata, dna_match
-        )
-
-    @staticmethod
-    def _template_explain(
-        score: float,
-        decision: str,
-        risk_factors: List[RiskFactor],
-        metadata: Dict,
-        dna_match: float
-    ) -> str:
-        """Template-based fallback explanation"""
-        country = metadata.get("country", "Unknown")
-        city = metadata.get("city", "")
-        is_new = metadata.get("is_new_user", False)
-
-        if score <= 30:
-            if is_new:
-                return f"First-time login from {country}. Low risk signals detected."
-            return f"Normal login from known location ({country}). Behavior matches profile."
-
-        elif score <= 60:
-            top_risk = risk_factors[0].description if risk_factors else "moderate risk signals"
-            return f"Moderate risk: {top_risk}. Verification recommended."
-
-        elif score <= 80:
-            top_risks = ", ".join([f.factor for f in risk_factors[:2]])
-            return f"High risk detected: {top_risks}. Additional verification required."
-
-        else:
-            top_risks = ", ".join([f.factor for f in risk_factors[:3]])
-            return f"Critical risk: {top_risks}. Login blocked for security."
+    async def explain(self, score, decision, risk_factors, country, city, hour, dna_match, is_new_user):
+        c = self._get_client()
+        if c:
+            try:
+                ft = "; ".join(f"{f['factor']}(+{f['contribution']})" for f in risk_factors[:5])
+                prompt = (f"Security analyst: ONE sentence, max 30 words. Score:{score}/100 Decision:{decision} "
+                          f"Country:{country} Hour:{hour} DNA:{dna_match}% New:{is_new_user} Factors:{ft}")
+                def call():
+                    return c.chat.complete(model="mistral-tiny", messages=[{"role": "user", "content": prompt}],
+                                           max_tokens=60, temperature=0.3).choices[0].message.content.strip()
+                return await asyncio.wait_for(asyncio.to_thread(call), timeout=5.0)
+            except Exception as e:
+                logger.warning(f"LLM failed: {e}")
+        level = "Low" if score < 30 else "Medium" if score < 60 else "High"
+        parts = [f"{level}-risk login"]
+        names = [f["factor"] for f in risk_factors]
+        if is_new_user: parts.append("first-time user")
+        if "new_device" in names: parts.append("unknown device")
+        if "new_country" in names: parts.append(f"from {country}")
+        if "impossible_travel" in names: parts.append("impossible travel")
+        if "off_hours" in names: parts.append(f"at {hour}:00")
+        if dna_match > 80: parts.append(f"DNA {dna_match}%")
+        return ": ".join([parts[0], ", ".join(parts[1:]) or "no anomalies"]) + "."

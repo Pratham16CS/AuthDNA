@@ -1,67 +1,35 @@
-// src/api/client.ts
-import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosResponse } from "axios";
-import { toast } from "sonner";
+import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+export const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 15000,
 });
 
-// Request interceptor — attach API key
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const apiKey = localStorage.getItem("authdna_api_key");
-    if (apiKey && config.headers) {
-      config.headers["X-API-Key"] = apiKey;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+apiClient.interceptors.request.use((config) => {
+  const key = localStorage.getItem('authdna_api_key');
+  if (key) {
+    console.log(`📤 Adding X-API-Key header: ${key.substring(0, 20)}...`);
+    config.headers['X-API-Key'] = key;
+  } else {
+    console.warn('⚠️  No API key in localStorage');
+  }
+  return config;
+});
 
-// Response interceptor — handle errors globally
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (r) => r,
   (error) => {
-    const { response } = error;
-
-    if (response) {
-      switch (response.status) {
-        case 401:
-          localStorage.removeItem("authdna_api_key");
-          localStorage.removeItem("authdna_tenant");
-
-          if (
-            !window.location.pathname.includes("/login") &&
-            !window.location.pathname.includes("/register")
-          ) {
-            toast.error("Session expired. Please login again.");
-            window.location.href = "/login";
-          }
-          break;
-
-        case 429:
-          toast.error("Rate limit exceeded. Please wait and try again.", {
-            description: `Your ${response.data?.detail?.tier || "current"} tier limit has been reached.`,
-          });
-          break;
-
-        case 500:
-          toast.error("Server error. Please try again later.");
-          break;
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authdna_api_key');
+      if (window.location.pathname.startsWith('/app')) {
+        window.location.href = '/login';
       }
-    } else {
-      toast.error("Network error — backend may be offline.");
     }
-
     return Promise.reject(error);
   }
 );
 
 export default apiClient;
-export { API_BASE_URL };

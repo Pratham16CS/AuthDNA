@@ -1,47 +1,30 @@
-// src/hooks/use-usage.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import usageAPI, { type CurrentUsage, type UsageHistory } from "@/api/usage";
 
 export function useUsage() {
-  const [usage, setUsage] = useState<CurrentUsage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [current, setCurrent] = useState<CurrentUsage | null>(null);
+  const [history, setHistory] = useState<UsageHistory[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsage = useCallback(async () => {
-    setIsLoading(true);
+  const fetch = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const data = await usageAPI.getCurrentUsage();
-      setUsage(data);
-    } catch {
-      setError("Failed to load usage");
+      const [curRes, histRes] = await Promise.all([
+        usageAPI.getCurrentUsage(),
+        usageAPI.getUsageHistory(),
+      ]);
+      setCurrent(curRes.data);
+      setHistory(histRes.data.history || []);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || "Failed to load usage");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => { fetchUsage(); }, [fetchUsage]);
+  useEffect(() => { fetch(); }, []);
 
-  return { usage, isLoading, error, refetch: fetchUsage };
-}
-
-export function useUsageHistory(months: number = 6) {
-  const [history, setHistory] = useState<UsageHistory | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchHistory = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await usageAPI.getUsageHistory(months);
-      setHistory(data);
-    } catch {
-      setError("Failed to load history");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [months]);
-
-  useEffect(() => { fetchHistory(); }, [fetchHistory]);
-
-  return { history, isLoading, error, refetch: fetchHistory };
+  return { current, history, loading, error, refresh: fetch };
 }

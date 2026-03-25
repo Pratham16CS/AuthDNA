@@ -1,34 +1,22 @@
-// src/api/webhooks.ts
-import apiClient from "./client";
+import apiClient from './client';
 
 export interface WebhookConfig {
-  webhook_url: string | null;
+  url: string | null;
+  active: boolean;
   events: string[];
-  status: string;
 }
 
-const webhookAPI = {
-  getWebhook: async (): Promise<WebhookConfig> => {
-    const response = await apiClient.get("/v1/webhooks/");
-    return response.data;
-  },
+export const getWebhook = () =>
+  apiClient.get<WebhookConfig>('/v1/webhooks/');
 
-  updateWebhook: async (webhookUrl: string) => {
-    const response = await apiClient.put("/v1/webhooks/", {
-      webhook_url: webhookUrl,
-    });
-    return response.data;
-  },
+export const updateWebhook = (url: string) =>
+  apiClient.put<{ url: string; active: boolean }>('/v1/webhooks/', { url });
 
-  deleteWebhook: async () => {
-    const response = await apiClient.delete("/v1/webhooks/");
-    return response.data;
-  },
+export const deleteWebhook = () =>
+  apiClient.delete('/v1/webhooks/');
 
-  testWebhook: async () => {
-    const response = await apiClient.post("/v1/webhooks/test");
-    return response.data;
-  },
-};
+export const testWebhook = () =>
+  apiClient.post<{ delivered: boolean; url: string }>('/v1/webhooks/test');
 
+const webhookAPI = { getWebhook, updateWebhook, deleteWebhook, testWebhook };
 export default webhookAPI;

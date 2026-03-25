@@ -1,106 +1,106 @@
-// src/pages/app/UserDetailPage.tsx
-import { useParams, useNavigate } from "react-router-dom";
-import { useUserDNA, useLogs } from "@/hooks/use-dashboard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { getUserDna, getLogs, type UserDNA, type LoginLog } from '@/api/dashboard';
 
 export default function UserDetailPage() {
-  const { userId } = useParams<{ userId: string }>();
-  const decodedUserId = userId ? decodeURIComponent(userId) : "";
-  const { dna, isLoading: dnaLoading, error: dnaError } = useUserDNA(decodedUserId);
-  const { logs, isLoading: logsLoading } = useLogs({ limit: 20, userId: decodedUserId });
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [dna, setDna] = useState<UserDNA | null>(null);
+  const [logs, setLogs] = useState<LoginLog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    Promise.all([
+      getUserDna(id).then(r => setDna(r.data.profile)).catch(() => {}),
+      getLogs({ user_id: id, limit: 20 }).then(r => setLogs(r.data.logs || [])).catch(() => {}),
+    ]).finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" /></div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/app/users")}>← Back</Button>
-        <h2 className="text-xl font-semibold">👤 {decodedUserId}</h2>
+        <Button variant="outline" onClick={() => navigate('/app/users')}>← Back</Button>
+        <h1 className="text-3xl font-bold">{id}</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* DNA Profile */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Behavioral DNA</CardTitle></CardHeader>
-          <CardContent>
-            {dnaLoading ? (
-              <Skeleton className="h-48 w-full" />
-            ) : dnaError ? (
-              <p className="text-muted-foreground text-sm">{dnaError}</p>
-            ) : dna ? (
-              <div className="space-y-4">
-                <InfoRow label="Total Logins" value={dna.login_count.toString()} />
-                <InfoRow label="Avg Login Hour" value={`${dna.avg_login_hour.toFixed(1)}:00`} />
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Known Devices</p>
-                  <div className="flex gap-1 flex-wrap">
-                    {dna.common_devices.map((d, i) => <Badge key={i} variant="outline">{d}</Badge>)}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Known Locations</p>
-                  <div className="flex gap-1 flex-wrap">
-                    {dna.common_locations.map((l, i) => <Badge key={i} variant="secondary">{l}</Badge>)}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Resources Accessed</p>
-                  <div className="flex gap-1 flex-wrap">
-                    {dna.common_resources.map((r, i) => <Badge key={i} variant="outline">{r}</Badge>)}
-                  </div>
-                </div>
-                <InfoRow label="Last Seen" value={dna.last_seen ? new Date(dna.last_seen).toLocaleString() : "—"} />
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+      {dna ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader><CardTitle>DNA Profile</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div><span className="text-muted-foreground text-sm">Login Count:</span> <strong>{dna.login_count}</strong></div>
+              <div><span className="text-muted-foreground text-sm">Avg Login Hour:</span> <strong>{dna.avg_login_hour?.toFixed(1)}:00</strong></div>
+              <div><span className="text-muted-foreground text-sm">First Seen:</span> <strong>{dna.first_seen ? new Date(dna.first_seen).toLocaleDateString() : '-'}</strong></div>
+              <div><span className="text-muted-foreground text-sm">Last Login:</span> <strong>{dna.last_login_timestamp ? new Date(dna.last_login_timestamp).toLocaleString() : '-'}</strong></div>
+              <div><span className="text-muted-foreground text-sm">Last IP:</span> <strong className="font-mono">{dna.last_login_ip}</strong></div>
+              <div><span className="text-muted-foreground text-sm">Last Country:</span> <strong>{dna.last_login_country}</strong></div>
+            </CardContent>
+          </Card>
 
-        {/* Login History */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Login History</CardTitle></CardHeader>
-          <CardContent>
-            {logsLoading ? (
-              <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-            ) : logs.length > 0 ? (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {logs.map((log, idx) => (
-                  <div key={idx} className="flex items-start gap-3 border-l-2 pl-4 py-2"
-                    style={{ borderColor: log.decision === "ALLOW" ? "#22c55e" : log.decision === "BLOCK" ? "#ef4444" : "#f59e0b" }}>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={log.decision === "BLOCK" ? "destructive" : log.decision === "OTP" ? "secondary" : "default"} className="text-xs">
-                          {log.decision}
-                        </Badge>
-                        <span className="font-mono text-sm">{log.score}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {log.country || "Unknown"} · {log.ip} · {log.resource}
-                      </p>
-                      <p className="text-xs text-muted-foreground italic mt-1">{log.explanation}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground shrink-0">
-                      {new Date(log.timestamp).toLocaleString()}
-                    </p>
-                  </div>
+          <Card>
+            <CardHeader><CardTitle>Known Signals</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Devices ({dna.known_devices.length})</p>
+                <div className="flex flex-wrap gap-1">
+                  {dna.known_devices.map((d, i) => <Badge key={i} variant="outline" className="text-xs">{d.substring(0, 24)}</Badge>)}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Countries ({dna.known_countries.length})</p>
+                <div className="flex flex-wrap gap-1">
+                  {dna.known_countries.map((c, i) => <Badge key={i} variant="secondary" className="text-xs">{c}</Badge>)}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Resources ({dna.common_resources.length})</p>
+                <div className="flex flex-wrap gap-1">
+                  {dna.common_resources.map((r, i) => <Badge key={i} className="text-xs bg-teal-100 text-teal-800">{r}</Badge>)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">No DNA profile found</CardContent></Card>
+      )}
+
+      <Card>
+        <CardHeader><CardTitle>Login History</CardTitle></CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="py-2 px-2">Time</th>
+                  <th className="py-2 px-2">IP</th>
+                  <th className="py-2 px-2">Country</th>
+                  <th className="py-2 px-2">Score</th>
+                  <th className="py-2 px-2">Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((l, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="py-2 px-2 text-xs">{l.timestamp ? new Date(l.timestamp).toLocaleString() : '-'}</td>
+                    <td className="py-2 px-2 font-mono text-xs">{l.ip}</td>
+                    <td className="py-2 px-2">{l.country}</td>
+                    <td className="py-2 px-2 font-bold">{l.score}</td>
+                    <td className="py-2 px-2"><Badge variant="outline">{l.decision}</Badge></td>
+                  </tr>
                 ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">No login history</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value}</span>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

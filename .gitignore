@@ -11,17 +11,12 @@
 *.key
 *.crt
 
-# Firebase & Database
-firebase_service_account.json
+# Database & Service Accounts
 service_account.json
 config/firebase_service_account.json
 backend/config/firebase_service_account.json
 *-service-account.json
 *-credentials.json
-firebase.json
-.firebaserc
-firestore.indexes.json
-.firebaseemulator
 
 # API Keys, Secrets & Auth Tokens
 .apikey

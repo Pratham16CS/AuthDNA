@@ -255,7 +255,7 @@ print(f"\n{BOLD}7. process_login_ip — impossible travel (Mumbai → London in 
 LAST_LOC_MUMBAI = {
     "lat": 19.076, "lon": 72.877, "city": "Mumbai",
     "country": "India", "ip": "203.0.113.1",
-    "ts": (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat(),
+    "ts": (datetime.now(timezone.utc) - timedelta(minutes=30))now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
 }
 
 MOCK_LONDON = {
@@ -293,7 +293,7 @@ print(f"\n{BOLD}8. process_login_ip — possible travel (Mumbai → London in 10
 LAST_LOC_10H = {
     "lat": 19.076, "lon": 72.877, "city": "Mumbai",
     "country": "India", "ip": "203.0.113.1",
-    "ts": (datetime.now(timezone.utc) - timedelta(hours=10)).isoformat(),
+    "ts": (datetime.now(timezone.utc) - timedelta(hours=10))now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
 }
 
 async def mock_possible_travel():

@@ -1,65 +1,86 @@
-// src/api/dashboard.ts
-import apiClient from "./client";
+import apiClient from './client';
 
+// Types
 export interface DashboardStats {
   total_logins: number;
-  blocked_logins: number;
+  blocked: number;
   otp_triggered: number;
-  allowed_logins: number;
-  unique_users: number;
+  stepup_count: number;
   avg_risk_score: number;
-  period: string;
+  decisions: Record<string, number>;
+  recent_evaluations: Array<{
+    user_id: string;
+    ip: string;
+    country: string;
+    score: number;
+    decision: string;
+    explanation: string;
+    resource: string;
+    timestamp: string;
+  }>;
+  usage: {
+    hourly_rate: number;
+    hourly_limit: number;
+    remaining: number;
+    total_this_month: number;
+    avg_latency: number;
+    tier: string;
+  };
 }
 
 export interface LoginLog {
   user_id: string;
   ip: string;
-  device_fp: string;
-  resource: string;
+  country: string;
+  city: string;
   score: number;
   decision: string;
   explanation: string;
+  resource: string;
   timestamp: string;
-  country?: string;
-  city?: string;
+  device_fp: string;
+  dna_match: number;
+  is_new_user: boolean;
+  processing_time_ms: number;
+  request_id: string;
+  risk_factors_json: string;
+}
+
+export interface UserProfile {
+  user_id: string;
+  login_count: number;
+  devices: string[];
+  locations: string[];
+  last_seen: string;
 }
 
 export interface UserDNA {
   user_id: string;
+  known_devices: string[];
+  known_countries: string[];
+  known_cities: string[];
   avg_login_hour: number;
-  common_devices: string[];
-  common_locations: string[];
-  common_resources: string[];
   login_count: number;
-  last_seen: string;
+  common_resources: string[];
+  last_login_ip: string;
+  last_login_country: string;
+  last_login_timestamp: string;
+  first_seen: string;
 }
 
-const dashboardAPI = {
-  getStats: async (period?: string): Promise<DashboardStats> => {
-    const params: Record<string, string> = {};
-    if (period) params.period = period;
-    const response = await apiClient.get("/v1/dashboard/stats", { params });
-    return response.data;
-  },
+// API functions
+export const getStats = () => 
+  apiClient.get<DashboardStats>('/v1/dashboard/stats');
 
-  getLogs: async (options?: { limit?: number; userId?: string }): Promise<LoginLog[]> => {
-    const params: Record<string, string | number> = { limit: options?.limit || 50 };
-    if (options?.userId) params.user_id = options.userId;
-    const response = await apiClient.get("/v1/dashboard/logs", { params });
-    return response.data;
-  },
+export const getLogs = (params?: { user_id?: string; limit?: number }) =>
+  apiClient.get<{ logs: LoginLog[]; count: number }>('/v1/dashboard/logs', { params });
 
-  getAllUsers: async (): Promise<UserDNA[]> => {
-    const response = await apiClient.get("/v1/dashboard/users");
-    return response.data;
-  },
+export const getUsers = () =>
+  apiClient.get<{ users: UserProfile[] }>('/v1/dashboard/users');
 
-  getUserDNA: async (userId: string): Promise<UserDNA> => {
-    const response = await apiClient.get(
-      `/v1/dashboard/users/${encodeURIComponent(userId)}/dna`
-    );
-    return response.data;
-  },
-};
+export const getUserDna = (userId: string) =>
+  apiClient.get<{ profile: UserDNA | null }>(`/v1/dashboard/users/${encodeURIComponent(userId)}/dna`);
 
+// Default export for hooks that use `import dashboardAPI from ...`
+const dashboardAPI = { getStats, getLogs, getUsers, getUserDna };
 export default dashboardAPI;

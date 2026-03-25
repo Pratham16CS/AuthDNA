@@ -28,7 +28,7 @@ const navItems = [
 ];
 
 export default function AppLayout() {
-  const { companyName, tier, logout } = useAuth();
+  const { tenant, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
@@ -100,9 +100,9 @@ export default function AppLayout() {
           {/* Tenant Info */}
           {!collapsed && (
             <div className="p-4 border-t border-border">
-              <p className="text-sm font-medium text-foreground truncate">{companyName}</p>
+              <p className="text-sm font-medium text-foreground truncate">{tenant?.company_name}</p>
               <Badge variant="secondary" className="mt-1 capitalize text-xs">
-                {tier}
+                {tenant?.tier}
               </Badge>
               <Button
                 variant="ghost"
@@ -137,7 +137,7 @@ export default function AppLayout() {
             </h1>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-sm font-bold">
-                {companyName?.[0]?.toUpperCase() || "?"}
+                {tenant?.company_name?.[0]?.toUpperCase() || "?"}
               </div>
             </div>
           </header>

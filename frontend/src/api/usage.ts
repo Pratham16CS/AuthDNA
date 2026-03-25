@@ -1,49 +1,36 @@
-// src/api/usage.ts
-import apiClient from "./client";
+import apiClient from './client';
 
 export interface CurrentUsage {
-  tenant_id: string;
-  tier: string;
-  period: string;
-  total_calls_this_month: number;
-  hourly_rate_limit: number;
-  hourly_calls_used: number;
-  hourly_remaining: number;
-  breakdown: {
-    allow: number;
-    block: number;
-    otp: number;
-    stepup: number;
-  };
-  avg_latency_ms: number;
-  avg_risk_score: number;
-}
-
-export interface UsageHistoryEntry {
   period: string;
   total_calls: number;
-  block_count: number;
   allow_count: number;
+  block_count: number;
+  otp_count: number;
+  stepup_count: number;
   avg_latency_ms: number;
+  avg_score: number;
+  hourly_rate: number;
+  hourly_limit: number;
+  remaining: number;
+  tier: string;
 }
 
 export interface UsageHistory {
-  tenant_id: string;
-  history: UsageHistoryEntry[];
+  period: string;
+  total_calls: number;
+  allow_count: number;
+  block_count: number;
+  otp_count: number;
+  stepup_count: number;
+  avg_latency_ms: number;
+  avg_score: number;
 }
 
-const usageAPI = {
-  getCurrentUsage: async (): Promise<CurrentUsage> => {
-    const response = await apiClient.get("/v1/usage/current");
-    return response.data;
-  },
+export const getCurrentUsage = () =>
+  apiClient.get<CurrentUsage>('/v1/usage/current');
 
-  getUsageHistory: async (months: number = 6): Promise<UsageHistory> => {
-    const response = await apiClient.get("/v1/usage/history", {
-      params: { months },
-    });
-    return response.data;
-  },
-};
+export const getUsageHistory = () =>
+  apiClient.get<{ history: UsageHistory[] }>('/v1/usage/history');
 
+const usageAPI = { getCurrentUsage, getUsageHistory };
 export default usageAPI;

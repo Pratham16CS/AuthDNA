@@ -1,124 +1,85 @@
-// src/context/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import authAPI, { type TenantInfo, type RegisterPayload, type RegisterResponse } from "@/api/auth";
-import { toast } from "sonner";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getMe } from '@/api/auth';
 
-interface AuthContextType {
-  tenant: TenantInfo | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  register: (payload: RegisterPayload) => Promise<RegisterResponse>;
-  login: (apiKey: string) => Promise<TenantInfo>;
-  logout: () => void;
-  rotateKey: () => Promise<{ new_api_key: string; message: string }>;
-  refreshTenant: () => Promise<void>;
-  maskedApiKey: string | null;
-  tenantId: string | undefined;
-  companyName: string | undefined;
-  tier: string | undefined;
+interface Tenant {
+  tenant_id: string;
+  company_name: string;
+  email: string;
+  tier: string;
+  total_api_calls: number;
+  webhook_url?: string | null;
+  is_active: boolean;
+  key_prefix?: string;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+interface AuthContextType {
+  tenant: Tenant | null;
+  apiKey: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (apiKey: string) => Promise<boolean>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [tenant, setTenant] = useState<TenantInfo | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(
+    localStorage.getItem('authdna_api_key')
+  );
   const [isLoading, setIsLoading] = useState(true);
 
-  // Validate stored key on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      setIsLoading(true);
-      if (authAPI.isAuthenticated()) {
-        try {
-          const info = await authAPI.getTenantInfo();
-          setTenant(info);
-          setIsAuthenticated(true);
-          localStorage.setItem("authdna_tenant", JSON.stringify(info));
-        } catch {
-          setTenant(null);
-          setIsAuthenticated(false);
-          localStorage.removeItem("authdna_api_key");
-          localStorage.removeItem("authdna_tenant");
-        }
-      }
-      setIsLoading(false);
-    };
-    checkAuth();
-  }, []);
-
-  const register = useCallback(async (payload: RegisterPayload) => {
-    setIsLoading(true);
-    try {
-      const data = await authAPI.register(payload);
-      const info = await authAPI.getTenantInfo();
-      setTenant(info);
-      setIsAuthenticated(true);
-      toast.success("Company registered successfully!");
-      return data;
-    } catch (err: any) {
-      const msg = err.response?.data?.detail || err.message || "Registration failed";
-      toast.error(msg);
-      throw new Error(msg);
-    } finally {
+    if (apiKey) {
+      validate(apiKey);
+    } else {
       setIsLoading(false);
     }
   }, []);
 
-  const login = useCallback(async (apiKey: string) => {
-    setIsLoading(true);
+  async function validate(key: string): Promise<boolean> {
     try {
-      const info = await authAPI.loginWithApiKey(apiKey);
-      setTenant(info);
-      setIsAuthenticated(true);
-      toast.success(`Welcome back, ${info.company_name}!`);
-      return info;
-    } catch (err: any) {
-      toast.error(err.message || "Invalid API key");
-      throw err;
-    } finally {
+      console.log(`🔐 Validating API key: ${key.substring(0, 20)}...`);
+      localStorage.setItem('authdna_api_key', key);
+      const resp = await getMe();
+      console.log('✅ API key validated successfully');
+      setTenant(resp.data);
+      setApiKey(key);
       setIsLoading(false);
+      return true;
+    } catch (err: any) {
+      console.error('❌ API key validation failed:', err);
+      console.error('Response status:', err.response?.status);
+      console.error('Response data:', err.response?.data);
+      setTenant(null);
+      setApiKey(null);
+      localStorage.removeItem('authdna_api_key');
+      setIsLoading(false);
+      return false;
     }
-  }, []);
+  }
 
-  const logout = useCallback(() => {
+  async function login(key: string): Promise<boolean> {
+    setIsLoading(true);
+    return await validate(key);
+  }
+
+  function logout() {
     setTenant(null);
-    setIsAuthenticated(false);
-    toast.info("Logged out successfully");
-    authAPI.logout();
-  }, []);
-
-  const rotateKey = useCallback(async () => {
-    const data = await authAPI.rotateKey();
-    toast.success("API key rotated. Save your new key!");
-    return data;
-  }, []);
-
-  const refreshTenant = useCallback(async () => {
-    try {
-      const info = await authAPI.getTenantInfo();
-      setTenant(info);
-      localStorage.setItem("authdna_tenant", JSON.stringify(info));
-    } catch {
-      console.error("Failed to refresh tenant");
-    }
-  }, []);
+    setApiKey(null);
+    localStorage.removeItem('authdna_api_key');
+  }
 
   return (
     <AuthContext.Provider
       value={{
         tenant,
-        isAuthenticated,
+        apiKey,
+        isAuthenticated: !!tenant,
         isLoading,
-        register,
         login,
         logout,
-        rotateKey,
-        refreshTenant,
-        maskedApiKey: authAPI.getMaskedApiKey(),
-        tenantId: tenant?.tenant_id,
-        companyName: tenant?.company_name,
-        tier: tenant?.tier,
       }}
     >
       {children}
@@ -126,8 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be inside AuthProvider');
+  return ctx;
 }

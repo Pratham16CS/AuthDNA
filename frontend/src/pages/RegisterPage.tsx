@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { registerTenant } from "@/api/auth";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -24,7 +25,7 @@ export default function RegisterPage() {
   const [keySaved, setKeySaved] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,16 +34,18 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const data = await register({
-        companyName: form.companyName,
+      const resp = await registerTenant({
+        company_name: form.companyName,
         email: form.email,
-        adminSecret: form.adminSecret,
+        admin_secret: form.adminSecret,
         tier: form.tier,
-        webhookUrl: form.webhookUrl || null,
+        webhook_url: form.webhookUrl || undefined,
       });
-      setRevealedKey(data.api_key);
+      const apiKey = resp.data?.api_key;
+      setRevealedKey(apiKey);
+      if (apiKey) await login(apiKey);
     } catch (err: any) {
-      setError(err.message || "Registration failed");
+      setError(err?.response?.data?.detail || err.message || "Registration failed");
     } finally {
       setIsLoading(false);
     }
