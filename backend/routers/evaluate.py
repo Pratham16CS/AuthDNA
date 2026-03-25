@@ -12,6 +12,7 @@ from engines.risk_engine import RiskEngine
 from engines.llm_explainer import LLMExplainer
 from services.database_service import db_service
 from services.webhook_service import WebhookService
+from routers.stream import push_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["evaluate"])
@@ -63,11 +64,14 @@ async def evaluate_login(body: EvaluateRequest, request: Request, tenant: dict =
 
 async def _se(tid, body, ip, dfp, pipe, risk, explanation, dna_result, pms, rid, now, tenant):
     try:
-        await db_service.save_login_log(tid, {"user_id": body.user_id, "ip": ip[:45], "device_fp": (dfp or "")[:500],
+        log_data = {"user_id": body.user_id, "ip": ip[:45], "device_fp": (dfp or "")[:500],
             "country": pipe["geo"]["country"][:100], "city": pipe["geo"]["city"][:100], "score": risk["score"],
             "decision": risk["decision"][:10], "explanation": (explanation or "")[:1000], "resource": (body.resource or "")[:100],
             "risk_factors_json": json.dumps(risk["risk_factors"])[:5000], "dna_match": dna_result["dna_match"],  # pyre-ignore[16]
-            "is_new_user": dna_result["is_new_user"], "processing_time_ms": pms, "request_id": rid[:50], "timestamp": now})
+            "is_new_user": dna_result["is_new_user"], "processing_time_ms": pms, "request_id": rid[:50], "timestamp": now}
+        await db_service.save_login_log(tid, log_data)
+        # Broadcast to SSE clients
+        push_event(tid, {"type": "login_event", "tenant_id": tid, **{k: v for k, v in log_data.items() if k != "risk_factors_json"}})
         if risk["decision"] != "BLOCK":
             await DNAEngine.update_profile(
                 tid, body.user_id,
