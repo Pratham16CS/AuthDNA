@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acme Corp — Secure Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand: #4f46e5;
+      --brand-glow: rgba(79, 70, 229, 0.4);
+      --bg: #09090b;
+      --card: rgba(24, 24, 27, 0.6);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #fafafa;
+      --muted: #a1a1aa;
+      --allow: #10b981;
+      --block: #ef4444;
+      --sidebar: #111114;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Sidebar */
+    aside {
+      width: 260px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em;
+    }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--brand), #a855f7);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    nav { display: flex; flex-direction: column; gap: 8px; }
+    nav a {
+      color: var(--muted); text-decoration: none; font-size: 0.9rem;
+      padding: 10px 12px; border-radius: 8px; transition: all 0.2s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    nav a:hover, nav a.active { color: var(--text); background: rgba(255,255,255,0.05); }
+    nav a.active { color: var(--brand); background: rgba(79,70,229,0.1); }
+
+    /* Main Content */
+    main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+    
+    header {
+      padding: 20px 40px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 10;
+      background: rgba(9, 9, 11, 0.8);
+    }
+    
+    .user-info { display: flex; align-items: center; gap: 16px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: #27272a; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; }
+    
+    /* Security Badge */
+    .sec-shield {
+      background: rgba(16,185,129,0.1); color: var(--allow); border: 1px solid rgba(16,185,129,0.2);
+      padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .sec-shield .dot { width: 6px; height: 6px; background: var(--allow); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 70% { box-shadow: 0 0 0 10px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
+
+    .content { padding: 40px; }
+    .welcome h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; }
+    .welcome p { color: var(--muted); margin-bottom: 32px; }
+
+    /* Dashboard Widgets */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; position: relative; overflow: hidden;
+    }
+    .card h3 { font-size: 1rem; margin-bottom: 16px; color: var(--muted); font-weight: 500; }
+    
+    .stat { font-size: 2rem; font-weight: 700; display: block; margin-bottom: 4px; }
+    .trend { font-size: 0.8rem; font-weight: 500; }
+    .trend.positive { color: var(--allow); }
+    .trend.negative { color: var(--block); }
+
+    /* Interaction Radar */
+    .radar-box {
+      margin-top: 32px; padding: 20px; border-radius: 16px;
+      background: linear-gradient(to right, rgba(79,70,229,0.05), rgba(168,85,247,0.05));
+      border: 1px solid var(--border); display: flex; align-items: center; gap: 24px;
+    }
+    .radar-circle {
+      width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.05);
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    .radar-sweep {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 50%; border-top: 3px solid var(--brand);
+      animation: spin 3s linear infinite;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    .radar-info h4 { font-size: 0.9rem; margin-bottom: 4px; }
+    .radar-info p { font-size: 0.75rem; color: var(--muted); }
+    .dna-match { margin-left: auto; font-family: monospace; font-size: 1.25rem; font-weight: 700; color: var(--brand); }
+
+    /* List Table */
+    .activity-list { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .activity-list th { text-align: left; font-size: 0.75rem; color: var(--muted); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .activity-list td { padding: 12px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+    .status-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); }
+
+    [data-role] { display: none; }
+    body.admin [data-role="admin"] { display: block; }
+    body.viewer [data-role="viewer"] { display: block; }
+  </style>
+</head>
+<body class="viewer">
+  <aside>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      Acme Corp
+    </div>
+    
+    <nav>
+      <a href="#" class="active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Dashboard</a>
+      
+      <div data-role="admin">
+        <a href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Security Logs</a>
+        <a href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> User Access</a>
+      </div>
+
+      <div data-role="viewer">
+        <a href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Documents</a>
+        <a href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> My Identity</a>
+      </div>
+
+      <a href="/" style="margin-top: auto; color: var(--block);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header>
+      <div class="sec-shield">
+        <div class="dot"></div> DNA Shield Active
+      </div>
+      
+      <div class="user-info">
+        <div class="avatar" id="userInitial">U</div>
+        <div style="font-size: 0.9rem;">
+          <div style="font-weight:600;" id="userDisplay">User Name</div>
+          <div style="font-size: 0.7rem; color: var(--muted);" id="roleDisplay">Role</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="welcome">
+        <h1>Welcome, <span id="firstName">User</span></h1>
+        <p>Your session is currently protected by AuthDNA Behavioral Intelligence.</p>
+      </div>
+
+      <!-- ADMIN VIEW -->
+      <div data-role="admin">
+        <div class="grid">
+          <div class="card">
+            <h3>Total Threat Blocked</h3>
+            <span class="stat">1,284</span>
+            <span class="trend positive">↑ 12% from last week</span>
+          </div>
+          <div class="card">
+            <h3>Active Sessions</h3>
+            <span class="stat">42</span>
+            <span class="trend">0 anomalies detected</span>
+          </div>
+          <div class="card">
+            <h3>System Health</h3>
+            <span class="stat" style="color:var(--allow);">99.9%</span>
+            <span class="trend positive">All nodes green</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+          <h3>Critical Anomaly Detection</h3>
+          <table class="activity-list">
+            <thead>
+              <tr><th>Timestamp</th><th>User</th><th>Event</th><th>Risk</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>2m ago</td><td>john.d@acme.com</td><td>New Device Login</td><td>12.4</td><td><span class="status-badge" style="color:var(--allow);">ALLOW</span></td></tr>
+              <tr><td>15m ago</td><td>sarah.k@acme.com</td><td>High Intensity Mouse</td><td>54.1</td><td><span class="status-badge" style="color:var(--block);">BLOCK</span></td></tr>
+              <tr><td>1h ago</td><td>unknown@ip-44.2</td><td>Credential Stuffing</td><td>92.8</td><td><span class="status-badge" style="color:var(--block);">BLOCK</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEWER VIEW -->
+      <div data-role="viewer">
+        <div class="grid">
+          <div class="card">
+            <h3>My Active Projects</h3>
+            <span class="stat">7</span>
+            <span class="trend">2 updates today</span>
+          </div>
+          <div class="card">
+            <h3>Security Score</h3>
+            <span class="stat" style="color:var(--allow);">98/100</span>
+            <span class="trend positive">Excellent Baseline</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+          <h3>Recent activity</h3>
+          <table class="activity-list">
+            <thead>
+              <tr><th>File Name</th><th>Modified</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Q1-Strategy.pdf</td><td>2h ago</td><td>Shared</td></tr>
+              <tr><td>Infrastructure-Plan.docx</td><td>Yesterday</td><td>Draft</td></tr>
+              <tr><td>Marketing-Assets.zip</td><td>Mar 24</td><td>Final</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BEHAVIORAL RADAR -->
+      <div class="radar-box">
+        <div class="radar-circle">
+          <div class="radar-sweep"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12c0 1.2-4.03 6-9 6s-9-4.8-9-6c0-1.2 4.03-6 9-6s9 4.8 9 6Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="radar-info">
+          <h4>Behavioral DNA Analysis</h4>
+          <p id="radar-status">Monitoring mouse velocity and typing cadence...</p>
+        </div>
+        <div class="dna-match" id="dna-match">--.---%</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="http://localhost:8000/sdk/authdna.js"></script>
+  <script>
+    // URL Params for demo
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role') || 'viewer';
+    const email = params.get('user') || 'user@acme.com';
+    const name = email.split('@')[0];
+
+    document.body.className = role;
+    document.getElementById('userDisplay').innerText = email;
+    document.getElementById('roleDisplay').innerText = role.toUpperCase();
+    document.getElementById('userInitial').innerText = name[0].toUpperCase();
+    document.getElementById('firstName').innerText = name[0].toUpperCase() + name.slice(1);
+
+    // BEHAVIORAL ANALYSIS SIMULATION
+    let lastX = 0, lastY = 0, lastTime = Date.now();
+    let totalDist = 0;
+    let matchScore = 98.421;
+
+    // Track mouse movement to affect DNA match
+    document.addEventListener('mousemove', (e) => {
+      const now = Date.now();
+      const dt = now - lastTime;
+      if (dt > 100) {
+        const dx = e.pageX - lastX;
+        const dy = e.pageY - lastY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        // Slightly jitter the match score based on movement
+        matchScore += (Math.random() - 0.5) * 0.01;
+        if (matchScore > 100) matchScore = 99.999;
+        if (matchScore < 95) matchScore = 95.123;
+        
+        document.getElementById('dna-match').innerText = matchScore.toFixed(3) + '%';
+        
+        lastX = e.pageX;
+        lastY = e.pageY;
+        lastTime = now;
+      }
+    });
+
+    // Simple typing cadence detection
+    let lastKey = Date.now();
+    document.addEventListener('keydown', () => {
+      const now = Date.now();
+      const gap = now - lastKey;
+      if (gap < 200) {
+        document.getElementById('radar-status').innerText = 'Low latency typing detected. DNA Match consistent.';
+      }
+      lastKey = now;
+    });
+
+    // Periodic "Re-verify" simulation
+    setInterval(() => {
+      const status = document.getElementById('radar-status');
+      const messages = [
+        "Analyzing mouse velocity vectors...",
+        "Typing rhythm matches behavioral baseline.",
+        "DNA Shield: Active coverage 100%",
+        "Micro-interaction analysis: Safe.",
+        "Zero-trust heartbeat: Pulse confirmed."
+      ];
+      status.innerText = messages[Math.floor(Math.random() * messages.length)];
+    }, 5000);
+  </script>
+</body>
+</html>

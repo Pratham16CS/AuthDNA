@@ -36,6 +36,58 @@ export default function DocsPage() {
         Protect your login flow in 3 steps. Takes under 10 minutes.
       </p>
 
+      {/* Getting Started for Companies */}
+      <Card className="border-teal-500/30 bg-teal-50/50 dark:bg-teal-950/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            🏢 For Companies: Getting Started
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            New to AuthDNA? Follow these steps to secure your application with behavioral intelligence:
+          </p>
+          <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2 p-3 rounded-lg bg-background border">
+              <h4 className="font-bold flex items-center gap-2 text-teal-600">
+                <span className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-xs">1</span>
+                Register Your Company
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Visit our <a href="/register" className="underline font-medium text-teal-600">Registration Page</a> to create your tenant. You'll need an admin secret provided by our team.
+              </p>
+            </div>
+            <div className="space-y-2 p-3 rounded-lg bg-background border">
+              <h4 className="font-bold flex items-center gap-2 text-teal-600">
+                <span className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-xs">2</span>
+                Secure Your API Key
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Upon registration, a unique <code>sk_live_...</code> key will be generated. <strong>Save it securely</strong>; it is required for all backend API calls.
+              </p>
+            </div>
+            <div className="space-y-2 p-3 rounded-lg bg-background border">
+              <h4 className="font-bold flex items-center gap-2 text-teal-600">
+                <span className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-xs">3</span>
+                Customize Security
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Navigate to your dashboard to configure risk thresholds, set up webhooks, and view real-time security logs.
+              </p>
+            </div>
+            <div className="space-y-2 p-3 rounded-lg bg-background border">
+              <h4 className="font-bold flex items-center gap-2 text-teal-600">
+                <span className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-xs">4</span>
+                Go Live
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Once configured, follow the 3-step technical guide below to integrate our SDK and API into your existing auth flow.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Step 1 */}
       <Card>
         <CardHeader>
@@ -45,9 +97,18 @@ export default function DocsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Add this one line before your {'</body>'} tag. It auto-collects device fingerprint data.
-          </p>
+          <div className="space-y-4 mb-4">
+            <p className="text-muted-foreground">
+              Add this one line before your <code>{'</body>'}</code> tag. It auto-collects anonymized behavioral data and device characteristics.
+            </p>
+            <div className="bg-teal-50 dark:bg-teal-950/20 p-3 rounded border border-teal-200 dark:border-teal-800 text-sm">
+              <p className="font-medium text-teal-800 dark:text-teal-300">Why this is important:</p>
+              <p className="text-xs text-teal-700 dark:text-teal-400 mt-1">
+                The SDK creates a "Digital DNA" profile of your users. By analyzing typing cadence and mouse movements, 
+                our engine can distinguish between the real user and an attacker, even if the password is correct.
+              </p>
+            </div>
+          </div>
           <pre className="bg-zinc-950 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
 {`<script src="${apiUrl}/sdk/authdna.js"></script>`}
           </pre>
@@ -66,9 +127,18 @@ export default function DocsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Your API key stays on your <strong>server</strong> — never in the browser.
-          </p>
+          <div className="space-y-4 mb-6">
+            <p className="text-muted-foreground">
+              After validating the user's password, send a server-to-server request to our evaluation engine.
+            </p>
+            <div className="bg-teal-50 dark:bg-teal-950/20 p-3 rounded border border-teal-200 dark:border-teal-800 text-sm">
+              <p className="font-medium text-teal-800 dark:text-teal-300">Backend Security:</p>
+              <p className="text-xs text-teal-700 dark:text-teal-400 mt-1">
+                Your API key should <strong>never</strong> be exposed in the browser. 
+                Perform the risk check in your secure backend to prevent bypass attempts.
+              </p>
+            </div>
+          </div>
           <Tabs defaultValue="node" className="w-full">
             <TabsList>
               <TabsTrigger value="node">Node.js</TabsTrigger>
@@ -154,6 +224,16 @@ elif risk["decision"] == "BLOCK":
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <p className="text-muted-foreground mb-4">
+            Use the <code>decision</code> from our API to determine the next step in your authentication flow.
+          </p>
+          <div className="bg-teal-50 dark:bg-teal-950/20 p-3 rounded border border-teal-200 dark:border-teal-800 text-sm mb-4">
+            <p className="font-medium text-teal-800 dark:text-teal-300">Handling Decisions:</p>
+            <p className="text-xs text-teal-700 dark:text-teal-400 mt-1">
+              A <code>BLOCK</code> decision stops an attack in its tracks. For moderate risk, <code>OTP</code> or <code>STEPUP</code> 
+              allows you to challenge the user without a full lockout.
+            </p>
+          </div>
           <pre className="bg-zinc-950 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
 {`// In your login form submit handler:
 const ctx = window.AuthDNA?.getContext();

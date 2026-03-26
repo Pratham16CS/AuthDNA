@@ -440,7 +440,7 @@
 
         // Route intelligently based on AuthDNA Risk decision
         if (data.decision === 'ALLOW') {
-          views.allow.classList.add('visible');
+          window.location.href = `/dashboard.html?role=${window.simState.role}&user=${encodeURIComponent(username)}`;
         } else if (data.decision === 'OTP' || data.decision === 'STEPUP') {
           views.mfa.classList.add('visible');
         } else if (data.decision === 'BLOCK') {
